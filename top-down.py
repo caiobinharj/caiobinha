@@ -1,5 +1,5 @@
 import time
-inicio = time.time()
+
 class Funcionario:
     def __init__(self, nome, sociabilidade, filho_esquerda=None, irmao_direita=None):
         self.nome = nome
@@ -7,62 +7,59 @@ class Funcionario:
         self.filho_esquerda = filho_esquerda
         self.irmao_direita = irmao_direita
 
-
 def calcular_max_sociabilidade(no):
     memo = {}
 
     def dp(no):
         if no is None:
-            return (0, 0)
+            return (0, [], 0, [])
 
         # Verificar se já calculamos para este nó
         if no in memo:
             return memo[no]
 
+        # Caso 1: Incluir o nó atual
         incluído = no.sociabilidade
-        excluído = 0
+        convidados_incluídos = [no.nome]
 
+        # Caso 2: Excluir o nó atual
+        excluído = 0
+        convidados_excluídos = []
+
+        # Processar os filhos
         filho = no.filho_esquerda
         while filho:
-            filho_incluído, filho_excluído = dp(filho)
+            filho_incluído, lista_incluídos, filho_excluído, lista_excluídos = dp(filho)
+
+            # Atualizar valores para o caso de inclusão e exclusão
             incluído += filho_excluído
+            convidados_incluídos += lista_excluídos
+
             excluído += max(filho_incluído, filho_excluído)
+            if filho_incluído > filho_excluído:
+                convidados_excluídos += lista_incluídos
+            else:
+                convidados_excluídos += lista_excluídos
+
             filho = filho.irmao_direita
 
-        # Armazenar resultado no cache
-        memo[no] = (incluído, excluído)
+        # Armazenar no cache
+        memo[no] = (incluído, convidados_incluídos, excluído, convidados_excluídos)
         return memo[no]
 
-    return dp(no)
+    # Executar o algoritmo na raiz
+    incluído, convidados_incluídos, excluído, convidados_excluídos = dp(no)
 
-
-def obter_lista_convidados(no, incluir_no=None):
-    if no is None:
-        return []
-
-    convidados = []
-    if incluir_no is None:
-        incluído, excluído = calcular_max_sociabilidade(no)
-        incluir_no = incluído > excluído
-
-    if incluir_no:
-        convidados.append(no.nome)
-        filho = no.filho_esquerda
-        while filho:
-            convidados += obter_lista_convidados(filho, False)
-            filho = filho.irmao_direita
+    return (incluído, convidados_incluídos, excluído, convidados_excluídos)
+    
+def obter_lista_convidados(raiz):
+    incluído, convidados_incluídos, excluído, convidados_excluídos = calcular_max_sociabilidade(raiz)
+    if incluído > excluído:
+        return (convidados_incluídos, incluído)
     else:
-        filho = no.filho_esquerda
-        while filho:
-            filho_incluído, filho_excluído = calcular_max_sociabilidade(filho)
-            if filho_incluído > filho_excluído:
-                convidados += obter_lista_convidados(filho, True)
-            else:
-                convidados += obter_lista_convidados(filho, False)
-            filho = filho.irmao_direita
+        return (convidados_excluídos, excluído)
 
-    return convidados
-
+inicio = time.time()
 
 # Criação da árvore com 15 níveis
 presidente = Funcionario("Presidente", 20)
@@ -94,11 +91,10 @@ presidente.filho_esquerda = criar_nivel(1, 900, 10)
 presidente.filho_esquerda.irmao_direita = criar_nivel(10, 900, 20)
 presidente.filho_esquerda.irmao_direita.irmao_direita = criar_nivel(10, 900, 30)
 
-# Cálculo
-max_incluído, max_excluído = calcular_max_sociabilidade(presidente)
-print("Máxima sociabilidade:", max_incluído, max_excluído)
-lista_convidados = obter_lista_convidados(presidente)
+
+
+(lista_convidados, soma_max) = obter_lista_convidados(presidente)
 print("Lista de convidados:", lista_convidados)
-print("Total de convidados:", len(lista_convidados))
+print("Soma máxima de sociabilidade:", soma_max)
 fim = time.time()
 print(fim-inicio)
